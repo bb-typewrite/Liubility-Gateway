@@ -7,6 +7,7 @@ spring:
     nacos:
       discovery:
         server-addr: https://nacos.tyu.wiki
+#        server-addr: http://192.168.1.105:8848
     gateway:
       discovery:
         locator:
@@ -17,3 +18,19 @@ spring:
           uri: http://news.baidu.com/guoji #匹配后提供服务的路由地址
           predicates:
             - Path=/guoji/**         # 断言，路径相匹配的进行路由
+
+        - id: account
+          uri: lb://security-service
+          predicates:
+            - Path=/account/**
+
+  redis:
+#    host: 106.13.54.46
+    host: 192.168.1.105
+    port: 9736
+
+jwt:
+  expirationTime: 86400000
+  #  expirationTime: 60000
+  secretKey: haofangErpJwtSecretKey
+  header: Authorization
