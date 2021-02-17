@@ -20,17 +20,16 @@ spring:
             - Path=/guoji/**         # 断言，路径相匹配的进行路由
 
         - id: account
-          uri: lb://security-service
+          uri: lb://account-service
           predicates:
             - Path=/account/**
 
   redis:
-#    host: 106.13.54.46
-    host: 192.168.1.105
+    host: https://nacos.tyu.wiki
     port: 9736
 
 jwt:
   expirationTime: 86400000
-  #  expirationTime: 60000
   secretKey: haofangErpJwtSecretKey
-  header: Authorization
+  ignore:
+    - /account/login
