@@ -33,3 +33,4 @@ jwt:
   secretKey: haofangErpJwtSecretKey
   ignore:
     - /account/login
+    - /account/register

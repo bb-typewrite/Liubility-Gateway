@@ -57,7 +57,7 @@ public class JwtWebConfig implements WebFilter {
         String token = authorization.substring(7);
         try {
             if (jwtService.isTokenExpired(token)) {
-                return this.setErrorResponse(response, Result.authFail("token无效"));
+                return this.setErrorResponse(response, Result.authFail("token已过期"));
             }
         } catch (Exception e) {
             log.error(e.getMessage());
@@ -66,8 +66,12 @@ public class JwtWebConfig implements WebFilter {
         }
 
         try {
-            String username = jwtService.getUsernameFromToken(token);
-            ServerHttpRequest mutateReq = request.mutate().header("username", username).build();
+            AccountDto accountDto = jwtService.getSubjectFromToken(token,AccountDto.class);
+            ServerHttpRequest mutateReq = request.mutate().headers(httpHeaders -> {
+                httpHeaders.add("username", accountDto.getUsername());
+                httpHeaders.add("userId", String.valueOf(accountDto.getId()));
+                httpHeaders.set(HttpHeaders.AUTHORIZATION, token);
+            }).build();
             return webFilterChain.filter(serverWebExchange.mutate().request(mutateReq).build());
         } catch (Exception e) {
             log.error(e.getMessage());
