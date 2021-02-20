@@ -20,12 +20,12 @@ spring:
             - Path=/guoji/**         # 断言，路径相匹配的进行路由
 
         - id: account
-          uri: lb://account-service
+          uri: lb://typing-service
           predicates:
             - Path=/account/**
 
   redis:
-    host: https://nacos.tyu.wiki
+    host: remotehost
     port: 9736
 
 jwt:
