@@ -22,7 +22,7 @@ spring:
         - id: account
           uri: lb://typing-service
           predicates:
-            - Path=/account/**
+            - Path=/account/**,/version/**
 
   redis:
     host: remotehost
@@ -34,3 +34,4 @@ jwt:
   ignore:
     - /account/login
     - /account/register
+    - /version/**
