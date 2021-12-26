@@ -9,6 +9,8 @@ import org.liubility.commons.http.response.normal.Result;
 import org.liubility.commons.json.JsonUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -17,8 +19,10 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -83,5 +87,27 @@ public class JwtWebConfig implements WebFilter {
     protected Mono<Void> setErrorResponse(ServerHttpResponse response, Object object) {
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
         return response.writeWith(Mono.just(response.bufferFactory().wrap(JsonUtils.object2Byte(object))));
+    }
+
+
+    /**
+     * 获取请求体中的字符串内容
+     * @param serverHttpRequest
+     * @return
+     */
+    private String resolveBodyFromRequest(ServerHttpRequest serverHttpRequest){
+        //获取请求体
+        Flux<DataBuffer> body = serverHttpRequest.getBody();
+        StringBuilder sb = new StringBuilder();
+
+        body.subscribe(buffer -> {
+            byte[] bytes = new byte[buffer.readableByteCount()];
+            buffer.read(bytes);
+            DataBufferUtils.release(buffer);
+            String bodyString = new String(bytes, StandardCharsets.UTF_8);
+            sb.append(bodyString);
+        });
+        return sb.toString();
+
     }
 }
