@@ -74,7 +74,7 @@ debug：当此属性设置为true时，将打印出logback内部日志信息，�
 		表示当前logger的appender-ref和rootLogger的appender-ref都有效
     -->
     <!-- hibernate logger -->
-    <logger name="org.liubility.typing.server" level="trace" />
+    <logger name="org.liubility.gateway" level="trace" />
     <!-- Spring framework logger -->
     <logger name="org.springframework" level="debug" additivity="true"/>
     <!--additivity改为true可报错   修改同一行代码-->
