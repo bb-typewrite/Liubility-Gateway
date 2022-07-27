@@ -21,17 +21,17 @@ import java.util.stream.Collectors;
  */
 @Configuration
 public class GateWayConfig {
-    @Bean
-    public RouteLocator customRouteLocator(RouteLocatorBuilder routeLocatorBuilder)
-    {
-        RouteLocatorBuilder.Builder routes = routeLocatorBuilder.routes();
-
-        routes.route("path_route_atguigu",
-                r -> r.path("/guonei")
-                        .uri("http://news.baidu.com/guonei")).build();
-
-        return routes.build();
-    }
+//    @Bean
+//    public RouteLocator customRouteLocator(RouteLocatorBuilder routeLocatorBuilder)
+//    {
+//        RouteLocatorBuilder.Builder routes = routeLocatorBuilder.routes();
+//
+//        routes.route("path_route_atguigu",
+//                r -> r.path("/guonei")
+//                        .uri("http://news.baidu.com/guonei")).build();
+//
+//        return routes.build();
+//    }
 
     @Bean
     @LoadBalanced
