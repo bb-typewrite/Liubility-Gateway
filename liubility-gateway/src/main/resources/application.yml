@@ -22,7 +22,10 @@ spring:
         - id: account
           uri: lb://typing-service
           predicates:
-            - Path=/account/**,/version/**
+            - Path=/account/**,/version/**,/doc/typing/**
+          filters:
+            - RewritePath=/doc/typing/(?<segment>.*), /$\{segment}
+
         - id: websocket
           uri: lb:ws://typing-service
           predicates:
@@ -39,3 +42,4 @@ jwt:
     - /account/login
     - /account/register
     - /version/**
+    - /doc/**
