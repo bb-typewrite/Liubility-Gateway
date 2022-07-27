@@ -50,3 +50,4 @@ jwt:
     - /doc.html
     - /swagger-resources
     - /**/v3/api-docs
+    - /webjars/**
