@@ -51,8 +51,9 @@ public class GateWayConfig {
     public CorsWebFilter corsfilter() {
         CorsConfiguration config = new CorsConfiguration();
         config.addAllowedHeader("*");
-        config.addAllowedOrigin("*");
         config.addAllowedHeader("*");
+        config.setAllowCredentials(true);
+        config.addAllowedOriginPattern("*");
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource(new PathPatternParser());
         source.registerCorsConfiguration("/**", config);
