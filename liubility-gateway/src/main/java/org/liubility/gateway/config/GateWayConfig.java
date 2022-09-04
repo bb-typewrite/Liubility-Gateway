@@ -4,12 +4,14 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.http.HttpMessageConverters;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
-import org.springframework.cloud.gateway.route.RouteLocator;
-import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.reactive.CorsWebFilter;
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
+import org.springframework.web.util.pattern.PathPatternParser;
 
 import java.util.stream.Collectors;
 
@@ -35,7 +37,7 @@ public class GateWayConfig {
 
     @Bean
     @LoadBalanced
-    public RestTemplate restTemplate(){
+    public RestTemplate restTemplate() {
         return new RestTemplate();
     }
 
@@ -43,5 +45,17 @@ public class GateWayConfig {
     @ConditionalOnMissingBean
     public HttpMessageConverters messageConverters(ObjectProvider<HttpMessageConverter<?>> converters) {
         return new HttpMessageConverters(converters.orderedStream().collect(Collectors.toList()));
+    }
+
+    @Bean
+    public CorsWebFilter corsfilter() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.addAllowedHeader("*");
+        config.addAllowedOrigin("*");
+        config.addAllowedHeader("*");
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource(new PathPatternParser());
+        source.registerCorsConfiguration("/**", config);
+        return new CorsWebFilter(source);
     }
 }
