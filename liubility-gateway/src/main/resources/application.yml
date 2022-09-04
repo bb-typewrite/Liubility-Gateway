@@ -9,6 +9,17 @@ spring:
         server-addr: https://nacos.tyu.wiki
 #        server-addr: http://192.168.1.105:8848
     gateway:
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - "*"
+            allowedMethods:
+              - "*"
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 360000
       discovery:
         locator:
           enabled: true #开启从注册中心动态创建路由的功能，利用微服务名进行路由
