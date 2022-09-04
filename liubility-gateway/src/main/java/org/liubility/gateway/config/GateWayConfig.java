@@ -50,7 +50,7 @@ public class GateWayConfig {
     @Bean
     public CorsWebFilter corsfilter() {
         CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedHeader("*");
+        config.addAllowedMethod("*");
         config.addAllowedHeader("*");
         config.setAllowCredentials(true);
         config.addAllowedOriginPattern("*");
