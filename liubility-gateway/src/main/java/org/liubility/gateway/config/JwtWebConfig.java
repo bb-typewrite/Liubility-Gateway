@@ -22,8 +22,13 @@ import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @Author: Jdragon
@@ -43,25 +48,42 @@ public class JwtWebConfig implements WebFilter {
 
     @Override
     public Mono<Void> filter(ServerWebExchange serverWebExchange, WebFilterChain webFilterChain) {
+        ServerHttpResponse response = serverWebExchange.getResponse();
+
+        InetSocketAddress remoteAddress = serverWebExchange.getRequest().getRemoteAddress();
+        if (remoteAddress == null) {
+            log.error("请求的remoteAddress为空，不放行");
+            return this.setErrorResponse(response, Result.error("请求异常"));
+        }
+//        String hostAddress = remoteAddress.getAddress().getHostAddress();
+        String hostAddress = getIpAddress(serverWebExchange.getRequest());
+        String requestPath = serverWebExchange.getRequest().getPath().value();
+        log.info("来自{}的请求{}", hostAddress, requestPath);
         ServerHttpRequest request = serverWebExchange.getRequest();
 
         AntPathMatcher antPathMatcher = new AntPathMatcher();
         String path = request.getPath().value();
         boolean valid = jwtProperty.getIgnore().stream().anyMatch(item -> antPathMatcher.match(item, path));
         if (valid) {
-            return webFilterChain.filter(serverWebExchange);
+            ServerHttpRequest mutateReq = request.mutate().headers(httpHeaders -> httpHeaders.add("ip", hostAddress)).build();
+            return webFilterChain.filter(serverWebExchange.mutate().request(mutateReq).build());
         }
 
-        ServerHttpResponse response = serverWebExchange.getResponse();
+
         String authorization = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (authorization == null || !authorization.startsWith("Bearer ")) {
             return this.setErrorResponse(response, Result.authFail("未携带token"));
         }
 
         String token = authorization.substring(7);
+        AccountDto accountDto = jwtService.getSubjectFromToken(token, AccountDto.class);
         try {
-            if (jwtService.isTokenExpired(token)) {
-                return this.setErrorResponse(response, Result.authFail("token已过期"));
+//            if (jwtService.isTokenExpired(token)) {
+//                return this.setErrorResponse(response, Result.authFail("token已过期"));
+//            }
+            if (!Objects.equals(accountDto.getIp(), hostAddress)) {
+                log.error("token异常：{}：{}", accountDto.getIp(), hostAddress);
+                return this.setErrorResponse(response, Result.error("请求异常"));
             }
         } catch (Exception e) {
             log.error(e.getMessage());
@@ -70,10 +92,11 @@ public class JwtWebConfig implements WebFilter {
         }
 
         try {
-            AccountDto accountDto = jwtService.getSubjectFromToken(token,AccountDto.class);
+
             ServerHttpRequest mutateReq = request.mutate().headers(httpHeaders -> {
                 httpHeaders.add("username", accountDto.getUsername());
                 httpHeaders.add("userId", String.valueOf(accountDto.getId()));
+                httpHeaders.add("ip", hostAddress);
                 httpHeaders.set(HttpHeaders.AUTHORIZATION, token);
             }).build();
             return webFilterChain.filter(serverWebExchange.mutate().request(mutateReq).build());
@@ -89,13 +112,57 @@ public class JwtWebConfig implements WebFilter {
         return response.writeWith(Mono.just(response.bufferFactory().wrap(JsonUtils.object2Byte(object))));
     }
 
+    private static final String UNKNOWN = "unknown";
+
+    private String getIpAddress(ServerHttpRequest request) {
+        org.springframework.http.HttpHeaders headers = request.getHeaders();
+        String ip = headers.getFirst("X-Real-IP");
+        if (ip != null && ip.length() != 0 && !UNKNOWN.equalsIgnoreCase(ip)) {
+            ip = headers.getFirst("x-forwarded-for");
+            // 多次反向代理后会有多个ip值，第一个ip才是真实ip
+            if (ip != null && ip.contains(",")) {
+                ip = ip.split(",")[0];
+            }
+        }
+        if (ip == null || ip.length() == 0 || UNKNOWN.equalsIgnoreCase(ip)) {
+            ip = headers.getFirst("Proxy-Client-IP");
+        }
+        if (ip == null || ip.length() == 0 || UNKNOWN.equalsIgnoreCase(ip)) {
+            ip = headers.getFirst("WL-Proxy-Client-IP");
+        }
+        if (ip == null || ip.length() == 0 || UNKNOWN.equalsIgnoreCase(ip)) {
+            ip = headers.getFirst("HTTP_CLIENT_IP");
+        }
+        if (ip == null || ip.length() == 0 || UNKNOWN.equalsIgnoreCase(ip)) {
+            ip = headers.getFirst("HTTP_X_FORWARDED_FOR");
+        }
+        if (ip == null || ip.length() == 0 || UNKNOWN.equalsIgnoreCase(ip)) {
+            ip = Objects.requireNonNull(request.getRemoteAddress()).getAddress().getHostAddress();
+        }
+        if (ip == null || ip.length() == 0 || UNKNOWN.equalsIgnoreCase(ip)) {
+            ip = Optional.ofNullable(request.getRemoteAddress())
+                    .map(address -> address.getAddress().getHostAddress())
+                    .orElse("");
+            if ("127.0.0.1".equals(ip)) {
+                // 根据网卡取本机配置的IP
+                try {
+                    InetAddress inet = InetAddress.getLocalHost();
+                    ip = inet.getHostAddress();
+                } catch (UnknownHostException e) {
+                    // ignore
+                }
+            }
+        }
+        return ip;
+    }
 
     /**
      * 获取请求体中的字符串内容
+     *
      * @param serverHttpRequest
      * @return
      */
-    private String resolveBodyFromRequest(ServerHttpRequest serverHttpRequest){
+    private String resolveBodyFromRequest(ServerHttpRequest serverHttpRequest) {
         //获取请求体
         Flux<DataBuffer> body = serverHttpRequest.getBody();
         StringBuilder sb = new StringBuilder();
