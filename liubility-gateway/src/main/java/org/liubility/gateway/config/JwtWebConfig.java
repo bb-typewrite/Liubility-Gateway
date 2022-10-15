@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
@@ -69,6 +70,9 @@ public class JwtWebConfig implements WebFilter {
             return webFilterChain.filter(serverWebExchange.mutate().request(mutateReq).build());
         }
 
+        if (Objects.equals(request.getMethod(), HttpMethod.OPTIONS)) {
+            return webFilterChain.filter(serverWebExchange);
+        }
 
         String authorization = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (authorization == null || !authorization.startsWith("Bearer ")) {
@@ -97,7 +101,7 @@ public class JwtWebConfig implements WebFilter {
                 httpHeaders.add("username", accountDto.getUsername());
                 httpHeaders.add("userId", String.valueOf(accountDto.getId()));
                 httpHeaders.add("ip", hostAddress);
-                httpHeaders.set(HttpHeaders.AUTHORIZATION, token);
+                httpHeaders.add(HttpHeaders.AUTHORIZATION, token);
             }).build();
             return webFilterChain.filter(serverWebExchange.mutate().request(mutateReq).build());
         } catch (Exception e) {
@@ -109,6 +113,7 @@ public class JwtWebConfig implements WebFilter {
 
     protected Mono<Void> setErrorResponse(ServerHttpResponse response, Object object) {
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+        corsWebFilter(response);
         return response.writeWith(Mono.just(response.bufferFactory().wrap(JsonUtils.object2Byte(object))));
     }
 
@@ -176,5 +181,13 @@ public class JwtWebConfig implements WebFilter {
         });
         return sb.toString();
 
+    }
+
+    private void corsWebFilter(ServerHttpResponse response) {
+        response.getHeaders().add("Access-Control-Allow-Origin", "*");
+        response.getHeaders().add("Access-Control-Allow-Methods", "*");
+        response.getHeaders().add("Access-Control-Allow-Headers", "*");
+        response.getHeaders().add("Access-Control-Allow-Credentials", "true");
+        response.getHeaders().add("Access-Control-Expose-Headers", HttpHeaders.AUTHORIZATION);
     }
 }
