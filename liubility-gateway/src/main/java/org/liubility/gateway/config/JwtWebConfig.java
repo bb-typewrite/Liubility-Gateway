@@ -87,12 +87,12 @@ public class JwtWebConfig implements WebFilter {
 //            }
             if (!Objects.equals(accountDto.getIp(), hostAddress)) {
                 log.error("token异常：{}：{}", accountDto.getIp(), hostAddress);
-                return this.setErrorResponse(response, Result.error("请求异常"));
+                return this.setErrorResponse(response, Result.authFail("网络环境异常"));
             }
         } catch (Exception e) {
             log.error(e.getMessage());
             e.printStackTrace();
-            return this.setErrorResponse(response, Result.error("token解析异常"));
+            return this.setErrorResponse(response, Result.authFail("token解析异常"));
         }
 
         try {
