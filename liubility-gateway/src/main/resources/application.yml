@@ -33,7 +33,7 @@ spring:
         - id: typing-service
           uri: lb://typing-service
           predicates:
-            - Path=/typing-service/account/**,/typing-service/version/**
+            - Path=/typing-service/account/**,/typing-service/version/**,/typing-service/wordLib/**
 #          filters:
 #            - RewritePath=/typing-service(?<segment>/?.*), /typing-service/typing-service$\{segment}
 #            - StripPrefix=1
