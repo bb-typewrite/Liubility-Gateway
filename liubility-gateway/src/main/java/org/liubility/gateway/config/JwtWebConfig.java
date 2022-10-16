@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -46,6 +47,9 @@ public class JwtWebConfig implements WebFilter {
 
     @Autowired
     private JwtServiceImpl jwtService;
+
+    @Autowired
+    private RedisTemplate<String, String> redisTemplate;
 
     @Override
     public Mono<Void> filter(ServerWebExchange serverWebExchange, WebFilterChain webFilterChain) {
@@ -85,9 +89,17 @@ public class JwtWebConfig implements WebFilter {
 //            if (jwtService.isTokenExpired(token)) {
 //                return this.setErrorResponse(response, Result.authFail("token已过期"));
 //            }
-            if (!Objects.equals(accountDto.getIp(), hostAddress)) {
+            Boolean member = redisTemplate.opsForSet().isMember("lb:allow-ips:" + accountDto.getId(), hostAddress);
+            if (member == null || !member) {
+//            if (!Objects.equals(accountDto.getIp(), hostAddress)) {
                 log.error("token异常：{}：{}", accountDto.getIp(), hostAddress);
                 return this.setErrorResponse(response, Result.authFail("网络环境异常"));
+            }
+
+            String lastToken = redisTemplate.opsForValue().get("lb:token:" + accountDto.getId());
+            if (!Objects.equals(lastToken, token)) {
+                log.error("token已过期：{},new token:{}", token, lastToken);
+                return this.setErrorResponse(response, Result.authFail("token已过期"));
             }
         } catch (Exception e) {
             log.error(e.getMessage());
@@ -96,7 +108,6 @@ public class JwtWebConfig implements WebFilter {
         }
 
         try {
-
             ServerHttpRequest mutateReq = request.mutate().headers(httpHeaders -> {
                 httpHeaders.add("username", accountDto.getUsername());
                 httpHeaders.add("userId", String.valueOf(accountDto.getId()));
