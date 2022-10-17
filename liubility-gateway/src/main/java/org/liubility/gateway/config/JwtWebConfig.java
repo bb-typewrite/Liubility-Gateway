@@ -15,6 +15,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
@@ -59,7 +60,7 @@ public class JwtWebConfig implements WebFilter {
         InetSocketAddress remoteAddress = serverWebExchange.getRequest().getRemoteAddress();
         if (remoteAddress == null) {
             log.error("请求的remoteAddress为空，不放行");
-            return this.setErrorResponse(response, Result.error("请求异常"));
+            return this.setErrorResponse(response, HttpStatus.UNAUTHORIZED, Result.error("请求异常"));
         }
 //        String hostAddress = remoteAddress.getAddress().getHostAddress();
         String hostAddress = getIpAddress(serverWebExchange.getRequest());
@@ -81,7 +82,7 @@ public class JwtWebConfig implements WebFilter {
 
         String authorization = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (authorization == null || !authorization.startsWith("Bearer ")) {
-            return this.setErrorResponse(response, Result.authFail("未携带token"));
+            return this.setErrorResponse(response, HttpStatus.UNAUTHORIZED, Result.authFail("未携带token"));
         }
 
         String token = authorization.substring(7);
@@ -94,18 +95,18 @@ public class JwtWebConfig implements WebFilter {
             if (member == null || !member) {
 //            if (!Objects.equals(accountDto.getIp(), hostAddress)) {
                 log.error("token异常：{}：{}", accountDto.getIp(), hostAddress);
-                return this.setErrorResponse(response, Result.authFail("网络环境异常"));
+                return this.setErrorResponse(response, HttpStatus.UNAUTHORIZED, Result.authFail("网络环境异常"));
             }
 
             String lastToken = stringRedisTemplate.opsForValue().get("lb:token:" + accountDto.getId());
             if (!Objects.equals(lastToken, token)) {
                 log.error("token已过期：{},new token:{}", token, lastToken);
-                return this.setErrorResponse(response, Result.authFail("token已过期"));
+                return this.setErrorResponse(response, HttpStatus.UNAUTHORIZED, Result.authFail("token已过期"));
             }
         } catch (Exception e) {
             log.error(e.getMessage());
             e.printStackTrace();
-            return this.setErrorResponse(response, Result.authFail("token解析异常"));
+            return this.setErrorResponse(response, HttpStatus.UNAUTHORIZED, Result.authFail("token解析异常"));
         }
 
         try {
@@ -119,12 +120,13 @@ public class JwtWebConfig implements WebFilter {
         } catch (Exception e) {
             log.error(e.getMessage());
             e.printStackTrace();
-            return this.setErrorResponse(response, Result.unKnowError("系统繁忙"));
+            return this.setErrorResponse(response, HttpStatus.INTERNAL_SERVER_ERROR, Result.unKnowError("系统繁忙"));
         }
     }
 
-    protected Mono<Void> setErrorResponse(ServerHttpResponse response, Object object) {
+    protected Mono<Void> setErrorResponse(ServerHttpResponse response, HttpStatus httpStatus, Object object) {
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+        response.setStatusCode(httpStatus);
         corsWebFilter(response);
         return response.writeWith(Mono.just(response.bufferFactory().wrap(JsonUtils.object2Byte(object))));
     }
