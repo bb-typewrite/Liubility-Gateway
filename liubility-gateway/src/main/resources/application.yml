@@ -33,7 +33,7 @@ spring:
         - id: ui
           uri: http://192.168.1.150:8010/
           predicates:
-            - Path=/ui/**
+            - Path=/ui/**,/assets/**,/dist/**
           filters:
             - StripPrefix=1
         - id: typing-service
@@ -67,3 +67,5 @@ jwt:
     - /**/v3/api-docs
     - /webjars/**
     - /ui/**
+    - /assets/**
+    - /dist/**
