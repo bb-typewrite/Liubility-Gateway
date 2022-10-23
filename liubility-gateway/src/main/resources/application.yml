@@ -66,3 +66,4 @@ jwt:
     - /swagger-resources
     - /**/v3/api-docs
     - /webjars/**
+    - /ui/**
