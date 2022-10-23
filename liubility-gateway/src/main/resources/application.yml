@@ -34,6 +34,8 @@ spring:
           uri: http://192.168.1.150:8010/
           predicates:
             - Path=/ui/**
+          filters:
+            - StripPrefix=1
         - id: typing-service
           uri: lb://typing-service
           predicates:
