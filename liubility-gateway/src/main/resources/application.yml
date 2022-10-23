@@ -30,6 +30,10 @@ spring:
 #          uri: http://news.baidu.com/guoji #匹配后提供服务的路由地址
 #          predicates:
 #            - Path=/guoji/**         # 断言，路径相匹配的进行路由
+        - id: ui
+          uri: http://192.168.1.150:8010/
+          predicates:
+            - Path=/ui/**
         - id: typing-service
           uri: lb://typing-service
           predicates:
